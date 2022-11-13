@@ -16,18 +16,10 @@ const io = new Server(server);
 var users = [];
 var userWrt = [];
 
-function userConnected(Socket){
-    io.emit("userConnected", users);
-}
-
-
-server.listen(PORT, () =>{
-    console.log(`Escuchando en el puerto ${PORT}`);
-});
 
 io.on("connection", function(Socket){
     console.log(Socket.id+" conectado.");
-    userConnected(Socket);
+    io.emit("userConnected", users);
 
     Socket.on("disconnect", ()=>{
         console.log(`${Socket.id} desconectado.`);
@@ -38,8 +30,9 @@ io.on("connection", function(Socket){
             userWrt = userWrt.filter(function(User){
                 return User != Socket.name;
             });
-            var data = {name : Socket.name, userL : users, userWL: userWrt}
-            io.emit("userDisconnected", data);
+            io.emit("userWritting", userWrt);
+            io.emit("userConnected", users);
+            io.emit("userDisconnected", Socket.name);
         }
     });
 
@@ -55,7 +48,8 @@ io.on("connection", function(Socket){
     Socket.on("userConnected", (data)=>{
         users.push(data);
         Socket.name = data;
-        userConnected(Socket);
+        console.log(users)
+        io.emit("userConnected", users);
     });
 
     Socket.on("userWritting", ()=>{

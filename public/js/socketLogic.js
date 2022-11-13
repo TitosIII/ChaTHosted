@@ -1,56 +1,147 @@
-//Crear una instancia de SocketIO, recibe como parámetro el url del servidor al que se conectará
-var socket = io();
-var list = document.querySelector('#not');
+import {Modal} from "bootstrap"
 
-let mensaje = document.getElementById(`mensaje`);
-let usuario = document.getElementById(`usuario`);
-let salida = document.getElementById(`salida`);
-let notificaciones = document.getElementById(`notificaciones`);
-let boton = document.getElementById(`enviar`);
+let socket = io();
+let userName;
+let users = [];
+let DisUsers = [];
+let userWrt = [];
 
-var clientes = [];
+let modal = new Modal(document.getElementById("userMod"));
+let userTxt = document.getElementById("user");
+let userErr = document.getElementById("invUser");
+let btnModal = document.getElementById("btnModal");
 
-boton.addEventListener("click", function(){
-  var data={
-    mensaje: mensaje.value,
-    usuario: usuario.value
-  };
+let boxUsers = document.getElementById("uList");
+let boxDisUsers = document.getElementById("uDisList")
 
-  if(mensaje.value === ``||usuario === ``){
-    alert(`Se requiere un mensaje y un usuario para poder ingresar al chat`)
-  } else{
-    mensaje.value = ``;
-    socket.emit(`chat:mensaje`, data)
+let boxMsg = document.getElementById("messages");
+let adv = document.getElementById("adv");
+let msgTxt = document.getElementById("txtMsg");
+let msgErr = document.getElementById("invMsg");
+let btnMsg = document.getElementById("btnMsg");
+
+
+modal.show();
+
+///////////////////////EventListeners
+
+userTxt.addEventListener("keyup",(evt)=>{
+  if(evt.key === "Enter"){
+    btnModal.click();
+  }
+});
+
+btnModal.addEventListener("click",()=>{
+  if(validate(userTxt, userErr, true)){
+    userName = userTxt.value;
+    socket.emit("userConnected", userName);
+    modal.hide();
+  }
+});
+
+btnMsg.addEventListener("click", ()=>{
+  if(validate(msgTxt, msgErr, false)){
+    socket.emit("newMessage", msgTxt.value);
+    msgTxt.value = "";
+  }
+});
+
+msgTxt.addEventListener("keyup", (evt)=>{
+  if(msgTxt.value == ""){
+    socket.emit("userNotWritting");
+  }else{
+    socket.emit("userWritting");
+  }
+  if(evt.key === "Enter"){
+    btnMsg.click();
   }
 })
 
-mensaje.addEventListener(`keydown`, function(){
-  socket.emit(`chat:escribiendo`, usuario.value)
-});
+/////////////////Methods
 
-socket.on("chat:mensaje", function (data){
-  salida.innerHTML += "<b>" +data.usuario + "</b>" + data.mensaje + "<br>";
-  avisos.innerHTML = "";
-});
+function validate(inp, invtxt, flag){
+  var invchar = "@{}$%#=/&|<>`?¿¡'!";
+  inp.className = "form-control";
+  invtxt.innerHTML = "";
 
-socket.on("chat:escribiendo", function (data){
-  avisos.innerHTML = "<p><em>"+data + "</em> está escribiendo...</p>";
-});
+  if(inp.value == ""){
+    inp.className = "form-control is-invalid";
+    invtxt.innerHTML = "Debe ingresar texto.";
+    return false;
+  }
 
-//Escuchar al evento 'hola' y realizar cierta accion, recibe como parámetro el id del evento y un callback con la información recibida
-socket.on('conectado', function (data) {
-  //Notificar al usuario el evento hola
-  console.log(data);
-  
-  notificaciones.innerHTML += data.texto;
-});
+  for(var i = 0; i < inp.value.length ; i++){
+    if (invchar.indexOf(inp.value.charAt(i)) > -1){
+      inp.className = "form-control is-invalid";
+      invtxt.innerHTML = "No se permite el uso de caracteres especiales.";
+      return false;
+    }
+  }
 
-socket.on('desconectado', function (data) {
-  //Notificar al usuario el evento hola
-  console.log(data);
-  clientes = clientes.filter(function(cliente){
-    console.log(cliente);
-    return cliente.id != data.id;
+  if(flag){
+    if(users.indexOf(inp.value) > -1){
+      inp.className = "form-control is-invalid";
+      invtxt.innerHTML = "Ese nombre ya está en uso.";
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function updateUsers(){
+  var txtHtml = "<ul>";
+  users.forEach((User)=>{
+    txtHtml += `<li>${User}`
   })
+  txtHtml += "</ul>"
+  boxUsers.innerHTML = txtHtml;
+}
+
+function updateDisUsers(){
+  var txtHtml = "<ul>";
+  DisUsers.forEach((User)=>{
+    txtHtml += `<li>${User}`
+  })
+  txtHtml += "</ul>"
+  boxDisUsers.innerHTML = txtHtml;
+}
+
+function updateUsersWritting(){
+  var advWrt = userWrt.filter((User)=>{
+    return User != userName;
+  })
+  if(advWrt.length === 0){
+    adv.innerHTML = "";
+  }else{
+    adv.innerHTML = `${advWrt} está(n) escribiendo.`
+  }
+}
+
+//////////////////////////Socket on's
+
+socket.on("userConnected", (userList)=>{
+  users = userList;
+  updateUsers();
 });
 
+socket.on("newMessage", (data)=>{
+  if(data.name === userName){
+    boxMsg.innerHTML += `<p align="right"><b>${data.name}</b>: ${data.message} <br></p>`;
+  }else{
+    boxMsg.innerHTML += `<p><b>${data.name}</b>: ${data.message} <br></p>`;
+  }
+  boxMsg.scrollTop = boxMsg.scrollHeight;
+});
+
+socket.on("userWritting",(userWL)=>{
+  userWrt = userWL;
+  updateUsersWritting();
+});
+
+socket.on("userDisconnected",(userD)=>{
+  DisUsers.push(userD);
+  console.log(userD);
+  console.log(DisUsers);
+  updateDisUsers();
+});
