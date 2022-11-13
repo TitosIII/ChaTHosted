@@ -10,7 +10,8 @@
   "type": "module",
   "devDependencies": {},
   "scripts": {
-    "start": "nodemon app.js run",
+    "start": "node app.js",
+    "dev": "nodemon app.js run",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
