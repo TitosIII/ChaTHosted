@@ -60,7 +60,7 @@ msgTxt.addEventListener("keyup", (evt)=>{
 /////////////////Methods
 
 function validate(inp, invtxt, flag){
-  var invchar = "@{}$%#=/&|<>`?¿¡'!";
+  var invchar = "{}$%#/&|<>`'" ;
   inp.className = "form-control";
   invtxt.innerHTML = "";
 
@@ -73,7 +73,7 @@ function validate(inp, invtxt, flag){
   for(var i = 0; i < inp.value.length ; i++){
     if (invchar.indexOf(inp.value.charAt(i)) > -1){
       inp.className = "form-control is-invalid";
-      invtxt.innerHTML = "No se permite el uso de caracteres especiales.";
+      invtxt.innerHTML = "No se permite el uso de caracteres especiales ({}$%#&|<>`').";
       return false;
     }
   }
